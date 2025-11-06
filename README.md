@@ -8,3 +8,9 @@ Clasificador de ropa para e-commerce usando MobileNetV2 + Transfer Learning. Ent
 ## Instalación
 ```bash
 pip install -r requirements.txt
+```
+
+## Ejecutar la app
+```basch
+streamlit run app.py
+```
