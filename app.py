@@ -1,4 +1,4 @@
-# app.py (VERSIÓN FINAL 100% FUNCIONAL: SIN ERRORES SQLITE + INVENTARIO + PREDICCIONES)
+# app.py (VERSIÓN FINAL 100% FUNCIONAL)
 import streamlit as st
 import tensorflow as tf
 from PIL import Image
@@ -12,7 +12,7 @@ import os
 DB_NAME = "inventario.db"
 MODEL_PATH = "fashion_ecommerce_model.h5"
 
-# === BASE DE DATOS CON MIGRACIÓN SEGURA ===
+# === BASE DE DATOS CON MIGRACIÓN Y FALLBACK ===
 def get_connection():
     return sqlite3.connect(DB_NAME, check_same_thread=False)
 
@@ -20,7 +20,7 @@ def init_db():
     conn = get_connection()
     c = conn.cursor()
     
-    # Crear tabla con columnas básicas (sin confianza al inicio)
+    # Crear tabla base
     c.execute('''
         CREATE TABLE IF NOT EXISTS productos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -31,10 +31,9 @@ def init_db():
         )
     ''')
     
-    # Agregar columna 'confianza' si no existe
+    # Agregar 'confianza' si no existe
     try:
         c.execute("ALTER TABLE productos ADD COLUMN confianza REAL")
-        st.toast("Base de datos actualizada: columna 'confianza' agregada.")
     except sqlite3.OperationalError:
         pass  # Ya existe
     
@@ -48,7 +47,6 @@ def save_product(nombre, categoria, confianza, imagen):
     img_bytes = imagen.read()
     fecha = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
-    # Verificar si la columna confianza existe antes de insertar
     c.execute("PRAGMA table_info(productos)")
     columns = [col[1] for col in c.fetchall()]
     
@@ -67,18 +65,18 @@ def load_inventory():
     conn = get_connection()
     c = conn.cursor()
     
-    # Verificar columnas existentes
     c.execute("PRAGMA table_info(productos)")
     columns = [col[1] for col in c.fetchall()]
+    has_confianza = 'confianza' in columns
     
-    if 'confianza' in columns:
+    if has_confianza:
         c.execute("SELECT id, nombre, categoria, confianza, fecha, imagen FROM productos ORDER BY fecha DESC")
     else:
         c.execute("SELECT id, nombre, categoria, NULL, fecha, imagen FROM productos ORDER BY fecha DESC")
     
     rows = c.fetchall()
     conn.close()
-    return rows, 'confianza' in columns
+    return rows, has_confianza
 
 # === CARGAR MODELO ===
 @st.cache_resource
@@ -135,7 +133,6 @@ with tab1:
                 st.success(f"**Predicción:** {class_names[cat_idx]}")
                 st.metric("Confianza", f"{confianza:.1%}")
 
-                # Probabilidades
                 st.subheader("Probabilidades")
                 probs = {class_names[i]: f"{p:.1%}" for i, p in enumerate(pred[0])}
                 st.json(probs)
@@ -152,8 +149,7 @@ with tab2:
     has_confianza = inventory_data[1]
     
     if inventory:
-        for idx, row in enumerate(inventory):
-            id_prod, nombre, cat, conf, fecha, img_blob = row
+        for idx, (id_prod, nombre, cat, conf, fecha, img_blob) in enumerate(inventory):
             col1, col2 = st.columns([1, 4])
             with col1:
                 if img_blob:
@@ -162,6 +158,7 @@ with tab2:
             with col2:
                 st.write(f"**{nombre}**")
                 st.write(f"**Categoría:** {cat}")
+                # MOSTRAR CONFIANZA SOLO SI EXISTE Y NO ES NULL
                 if has_confianza and conf is not None:
                     st.write(f"**Confianza:** {conf:.1%}")
                 st.write(f"**Fecha:** {fecha}")
