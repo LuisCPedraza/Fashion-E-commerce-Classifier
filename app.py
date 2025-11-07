@@ -56,3 +56,6 @@ if uploaded_file is not None:
         st.write("### Probabilidades por clase:")
         probs = {class_names[i]: f"{p:.1%}" for i, p in enumerate(prediction[0])}
         st.json(probs)
+
+st.markdown("---")
+st.caption("Desarrollado con ❤️ usando MobileNetV2 + Streamlit | [GitHub Repo](#)")
