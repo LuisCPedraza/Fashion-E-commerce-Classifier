@@ -1,18 +1,22 @@
-# Fashion-E-commerce-Classifier
-Clasificador de ropa para e-commerce usando MobileNetV2 + Transfer Learning. Entrenado en Fashion MNIST, permite subir fotos reales y predice la prenda con alta precisión. Incluye app web en Streamlit lista para deploy.
+# Fashion E-commerce Classifier 👗
 
-## Requisitos
-- Python 3.8+
-- GPU recomendada (opcional)
+Clasificador de prendas de ropa con **MobileNetV2 + Transfer Learning**.  
+Entrenado en **Fashion MNIST**, funciona con **fotos reales**.
 
-## Instalación
-```bash
-pip install -r requirements.txt
-```
+## Demo en vivo
+👉 [https://fashion-e-commerce-classifier-jt8l29wh6fopdjvxnammps.streamlit.app/](https://fashion-e-commerce-classifier-jt8l29wh6fopdjvxnammps.streamlit.app/)
 
-## Ejecutar la app
-```basch
-streamlit run app.py
-```
-## Enlace de la Web
-https://fashion-e-commerce-classifier-jt8l29wh6fopdjvxnammps.streamlit.app/
+## Características
+- Sube cualquier foto de ropa
+- Predice en tiempo real
+- Muestra confianza y probabilidades
+- 100% funcional en móviles
+
+## Tecnologías
+- TensorFlow / Keras
+- MobileNetV2
+- Streamlit
+- tf.data (optimizado)
+
+## Deploy
+- Streamlit Community Cloud (gratis)
