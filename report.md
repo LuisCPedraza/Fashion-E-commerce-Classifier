@@ -161,6 +161,16 @@ Tabla de Métricas por Época (MobileNetV2, resumida):
 - Deploy: En Streamlit Cloud (gratis): [https://fashion-e-commerce-classifier-jt8l29wh6fopdjvxnammps.streamlit.app/](https://fashion-e-commerce-classifier-jt8l29wh6fopdjvxnammps.streamlit.app/)
 - Funcionalidad: Sube foto → Clasifica → Guarda en inventario → Muestra lista con fotos.
 
+### App en Acción
+
+| Subir + Predicción | Inventario |
+|--------------------|----------|
+| ![upload](screenshots/upload.png) | ![inventory](screenshots/inventory.png) |
+
+### Distribución del Dataset
+![Train](screenshots/train_pie.png)  
+![Test](screenshots/test_pie.png)
+
 Ejemplo de Tabla de Inventario (generada en app):
 | Nombre | Categoría | Fecha | Imagen |
 |--------|-----------|-------|--------|
