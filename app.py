@@ -12,7 +12,7 @@ import os
 DB_NAME = "inventario.db"
 MODEL_PATH = "fashion_ecommerce_model.h5"
 
-# === BASE DE DATOS CON MIGRACIÓN Y FALLBACK ===
+# === BASE DE DATOS CON MIGRACIÓN SEGURA ===
 def get_connection():
     return sqlite3.connect(DB_NAME, check_same_thread=False)
 
@@ -158,9 +158,11 @@ with tab2:
             with col2:
                 st.write(f"**{nombre}**")
                 st.write(f"**Categoría:** {cat}")
-                # MOSTRAR CONFIANZA SOLO SI EXISTE Y NO ES NULL
+                # SOLUCIÓN: VERIFICAR SI conf ES None
                 if has_confianza and conf is not None:
                     st.write(f"**Confianza:** {conf:.1%}")
+                else:
+                    st.write("**Confianza:** No disponible")
                 st.write(f"**Fecha:** {fecha}")
             if idx < len(inventory) - 1:
                 st.divider()
