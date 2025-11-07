@@ -14,3 +14,5 @@ pip install -r requirements.txt
 ```basch
 streamlit run app.py
 ```
+## Enlace de la Web
+https://fashion-e-commerce-classifier-jt8l29wh6fopdjvxnammps.streamlit.app/
