@@ -12,7 +12,7 @@ import os
 DB_NAME = "inventario.db"
 MODEL_PATH = "fashion_ecommerce_model.h5"
 
-# === BASE DE DATOS CON MIGRACIÓN SEGURA ===
+# === BASE DE DATOS ===
 def get_connection():
     return sqlite3.connect(DB_NAME, check_same_thread=False)
 
@@ -60,7 +60,7 @@ def save_product(nombre, categoria, confianza, imagen):
     conn.commit()
     conn.close()
 
-# === CARGAR INVENTARIO CON FALLBACK ===
+# === CARGAR INVENTARIO ===
 def load_inventory():
     conn = get_connection()
     c = conn.cursor()
@@ -158,9 +158,9 @@ with tab2:
             with col2:
                 st.write(f"**{nombre}**")
                 st.write(f"**Categoría:** {cat}")
-                # SOLUCIÓN: VERIFICAR SI conf ES None
-                if has_confianza and conf is not None:
-                    st.write(f"**Confianza:** {conf:.1%}")
+                # SOLUCIÓN: MOSTRAR CONFIANZA SOLO SI ES VÁLIDA
+                if has_confianza and conf is not None and isinstance(conf, (int, float)):
+                    st.write(f"**Confianza:** {conf * 100:.1f}%")
                 else:
                     st.write("**Confianza:** No disponible")
                 st.write(f"**Fecha:** {fecha}")
