@@ -20,22 +20,22 @@ def init_db():
     conn = get_connection()
     c = conn.cursor()
     
-    # Crear tabla base
     c.execute('''
         CREATE TABLE IF NOT EXISTS productos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             nombre TEXT,
             categoria TEXT,
+            confianza REAL,
             fecha TEXT,
             imagen BLOB
         )
     ''')
     
-    # Agregar 'confianza' si no existe
+    # Agregar columna 'confianza' si no existe (para compatibilidad)
     try:
         c.execute("ALTER TABLE productos ADD COLUMN confianza REAL")
     except sqlite3.OperationalError:
-        pass  # Ya existe
+        pass
     
     conn.commit()
     conn.close()
@@ -47,16 +47,8 @@ def save_product(nombre, categoria, confianza, imagen):
     img_bytes = imagen.read()
     fecha = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
-    c.execute("PRAGMA table_info(productos)")
-    columns = [col[1] for col in c.fetchall()]
-    
-    if 'confianza' in columns:
-        c.execute("INSERT INTO productos (nombre, categoria, confianza, fecha, imagen) VALUES (?, ?, ?, ?, ?)",
-                  (nombre, categoria, confianza, fecha, img_bytes))
-    else:
-        c.execute("INSERT INTO productos (nombre, categoria, fecha, imagen) VALUES (?, ?, ?, ?)",
-                  (nombre, categoria, fecha, img_bytes))
-    
+    c.execute("INSERT INTO productos (nombre, categoria, confianza, fecha, imagen) VALUES (?, ?, ?, ?, ?)",
+              (nombre, categoria, confianza, fecha, img_bytes))
     conn.commit()
     conn.close()
 
@@ -65,6 +57,7 @@ def load_inventory():
     conn = get_connection()
     c = conn.cursor()
     
+    # Verificar si la columna 'confianza' existe
     c.execute("PRAGMA table_info(productos)")
     columns = [col[1] for col in c.fetchall()]
     has_confianza = 'confianza' in columns
@@ -154,16 +147,16 @@ with tab2:
             with col1:
                 if img_blob:
                     img = Image.open(io.BytesIO(img_blob))
-                    st.image(img, width=120)
+                    st.image(img, width=120, caption="Producto")
             with col2:
-                st.write(f"**{nombre}**")
-                st.write(f"**Categoría:** {cat}")
-                # SOLUCIÓN: MOSTRAR CONFIANZA SOLO SI ES VÁLIDA
-                if has_confianza and conf is not None and isinstance(conf, (int, float)):
-                    st.write(f"**Confianza:** {conf * 100:.1f}%")
+                st.markdown(f"**{nombre}**")
+                st.markdown(f"**Categoría:** {cat}")
+                # MOSTRAR CONFIANZA CORRECTAMENTE
+                if has_confianza and conf is not None:
+                    st.markdown(f"**Confianza:** {conf * 100:.1f}%")
                 else:
-                    st.write("**Confianza:** No disponible")
-                st.write(f"**Fecha:** {fecha}")
+                    st.markdown("**Confianza:** No disponible")
+                st.markdown(f"**Fecha:** {fecha}")
             if idx < len(inventory) - 1:
                 st.divider()
     else:
