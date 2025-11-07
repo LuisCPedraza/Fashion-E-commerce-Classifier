@@ -1,4 +1,4 @@
-# app.py (VERSIÓN FINAL: FIJA ERROR SQLITE + MEJOR UI + INVENTARIO COMPLETO)
+# app.py (VERSIÓN FINAL 100% FUNCIONAL: SIN ERRORES SQLITE + INVENTARIO + PREDICCIONES)
 import streamlit as st
 import tensorflow as tf
 from PIL import Image
@@ -12,22 +12,20 @@ import os
 DB_NAME = "inventario.db"
 MODEL_PATH = "fashion_ecommerce_model.h5"
 
-# === BASE DE DATOS CON MIGRACIÓN ===
+# === BASE DE DATOS CON MIGRACIÓN SEGURA ===
 def get_connection():
-    conn = sqlite3.connect(DB_NAME, check_same_thread=False)
-    return conn
+    return sqlite3.connect(DB_NAME, check_same_thread=False)
 
 def init_db():
     conn = get_connection()
     c = conn.cursor()
     
-    # Crear tabla si no existe
+    # Crear tabla con columnas básicas (sin confianza al inicio)
     c.execute('''
         CREATE TABLE IF NOT EXISTS productos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             nombre TEXT,
             categoria TEXT,
-            confianza REAL,
             fecha TEXT,
             imagen BLOB
         )
@@ -36,31 +34,51 @@ def init_db():
     # Agregar columna 'confianza' si no existe
     try:
         c.execute("ALTER TABLE productos ADD COLUMN confianza REAL")
-        st.success("Base de datos actualizada: columna 'confianza' agregada.")
+        st.toast("Base de datos actualizada: columna 'confianza' agregada.")
     except sqlite3.OperationalError:
         pass  # Ya existe
     
     conn.commit()
     conn.close()
 
-# === GUARDAR Y CARGAR INVENTARIO ===
+# === GUARDAR PRODUCTO ===
 def save_product(nombre, categoria, confianza, imagen):
     conn = get_connection()
     c = conn.cursor()
     img_bytes = imagen.read()
     fecha = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    c.execute("INSERT INTO productos (nombre, categoria, confianza, fecha, imagen) VALUES (?, ?, ?, ?, ?)",
-              (nombre, categoria, confianza, fecha, img_bytes))
+    
+    # Verificar si la columna confianza existe antes de insertar
+    c.execute("PRAGMA table_info(productos)")
+    columns = [col[1] for col in c.fetchall()]
+    
+    if 'confianza' in columns:
+        c.execute("INSERT INTO productos (nombre, categoria, confianza, fecha, imagen) VALUES (?, ?, ?, ?, ?)",
+                  (nombre, categoria, confianza, fecha, img_bytes))
+    else:
+        c.execute("INSERT INTO productos (nombre, categoria, fecha, imagen) VALUES (?, ?, ?, ?)",
+                  (nombre, categoria, fecha, img_bytes))
+    
     conn.commit()
     conn.close()
 
+# === CARGAR INVENTARIO CON FALLBACK ===
 def load_inventory():
     conn = get_connection()
     c = conn.cursor()
-    c.execute("SELECT id, nombre, categoria, confianza, fecha, imagen FROM productos ORDER BY fecha DESC")
+    
+    # Verificar columnas existentes
+    c.execute("PRAGMA table_info(productos)")
+    columns = [col[1] for col in c.fetchall()]
+    
+    if 'confianza' in columns:
+        c.execute("SELECT id, nombre, categoria, confianza, fecha, imagen FROM productos ORDER BY fecha DESC")
+    else:
+        c.execute("SELECT id, nombre, categoria, NULL, fecha, imagen FROM productos ORDER BY fecha DESC")
+    
     rows = c.fetchall()
     conn.close()
-    return rows
+    return rows, 'confianza' in columns
 
 # === CARGAR MODELO ===
 @st.cache_resource
@@ -86,7 +104,7 @@ def preprocess_image(img):
     arr = tf.keras.applications.mobilenet_v2.preprocess_input(arr)
     return np.expand_dims(arr, axis=0)
 
-# === INICIALIZAR DB ===
+# === INICIALIZAR ===
 init_db()
 
 # === INTERFAZ ===
@@ -94,7 +112,6 @@ st.set_page_config(page_title="Fashion E-commerce", page_icon="clothing", layout
 st.title("Clasificador de Ropa para E-commerce")
 st.markdown("**Sube una foto → Clasifica → Agrega al inventario**")
 
-# Tabs para mejor UX
 tab1, tab2 = st.tabs(["Subir Producto", "Inventario"])
 
 with tab1:
@@ -109,7 +126,7 @@ with tab1:
             image = Image.open(uploaded_file)
             st.image(image, caption="Imagen subida", use_column_width=True)
 
-            with st.spinner("Clasificando con MobileNetV2..."):
+            with st.spinner("Clasificando..."):
                 processed = preprocess_image(image)
                 pred = model.predict(processed, verbose=0)
                 cat_idx = np.argmax(pred[0])
@@ -130,10 +147,13 @@ with tab1:
 
 with tab2:
     st.subheader("Inventario Actual")
-    inventory = load_inventory()
+    inventory_data = load_inventory()
+    inventory = inventory_data[0]
+    has_confianza = inventory_data[1]
     
     if inventory:
-        for idx, (id_prod, nombre, cat, conf, fecha, img_blob) in enumerate(inventory):
+        for idx, row in enumerate(inventory):
+            id_prod, nombre, cat, conf, fecha, img_blob = row
             col1, col2 = st.columns([1, 4])
             with col1:
                 if img_blob:
@@ -141,7 +161,9 @@ with tab2:
                     st.image(img, width=120)
             with col2:
                 st.write(f"**{nombre}**")
-                st.write(f"**Categoría:** {cat} | **Confianza:** {conf:.1%}")
+                st.write(f"**Categoría:** {cat}")
+                if has_confianza and conf is not None:
+                    st.write(f"**Confianza:** {conf:.1%}")
                 st.write(f"**Fecha:** {fecha}")
             if idx < len(inventory) - 1:
                 st.divider()
